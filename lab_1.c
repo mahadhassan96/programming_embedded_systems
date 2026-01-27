@@ -11,7 +11,8 @@ static uint16_t pwm_led = 0;
 static bool incr = false;
 const static uint b1 = 20; 
 const static uint b2 = 21; 
-const static uint b3 = 22
+const static uint b3 = 22;
+uint pwm_slice;
 ; 
 /* Last button ISR time */
 unsigned long button_time = 0;
@@ -95,6 +96,8 @@ void private_init()
         gpio_init(i);
         gpio_set_dir(i, GPIO_OUT);
     }
+
+    pwm_slice = pwm_gpio_to_slice_num(0);
 }
 
 /* The next three methods are for convenience, you might want to use them. */
@@ -153,17 +156,18 @@ void exit_state_2(void){
 }
 
 void enter_state_3(void){
+    leds_off();
     gpio_set_function(0, GPIO_FUNC_PWM);
-    uint pwm_slice = pwm_gpio_to_slice_num(0);
     pwm_set_enabled(pwm_slice, true);
-    pwm_set_wrap(0, 500);
+    pwm_set_wrap(0, 5000);
 
     incr = true;
 }
 
 void exit_state_3(void){
-    uint pwm_slice = pwm_gpio_to_slice_num(0);
+    pwm_set_chan_level(pwm_slice, PWM_CHAN_A, 0);
     pwm_set_enabled(pwm_slice, false);
+    gpio_set_function(0, GPIO_FUNC_SIO); // Switch to standard GPIO
 }
 
 void do_state_0(void)
@@ -198,15 +202,14 @@ void do_state_2(void)
 
 void do_state_3(void)
 {
-    uint pwm_slice = pwm_gpio_to_slice_num(0);
     pwm_set_chan_level(pwm_slice, PWM_CHAN_A, pwm_led);
     if(incr){
-        pwm_led=pwm_led+100;
-        if(pwm_led >= 500)  {   incr = false;   }
+        pwm_led=pwm_led+50;
+        if(pwm_led >= 5000)  {   incr = false;   }
     }
     else{
-        pwm_led=pwm_led-100;
-        if(pwm_led < 0) {   incr = true;    }
+        pwm_led=pwm_led-50;
+        if(pwm_led <= 0) {   incr = true;    }
     }
 }
 
@@ -240,7 +243,7 @@ const state_t state3 = {
     enter_state_3,
     do_state_3,
     exit_state_3, 
-    0
+    10
 };
 
 /* !!! PART 2 !!! */
@@ -256,7 +259,7 @@ int main()
 {
     private_init(); 
 
-    state_t current_state = state3;
+    state_t current_state = state0;
     event_t evt = no_evt;
 
     for(;;) 
@@ -270,10 +273,10 @@ int main()
             sleep_ms(current_state.delay_ms);
             evt = get_event();
             if(current_state.id != state_table[current_state.id][evt].id){
-                current_state = state_table[current_state.id][evt];
                 break;
             }
         }
         current_state.Exit();
+        current_state = state_table[current_state.id][evt];
     }
 }
