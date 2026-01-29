@@ -6,6 +6,7 @@
 /* !!! MIGHT WANT TO CHANGE THIS !!! */
 #define BUTTON_DEBOUNCE_DELAY   100
 
+const static uint led_0 = 0;
 static uint led = 0; 
 static uint16_t pwm_led = 0;
 static bool incr = false;
@@ -97,7 +98,7 @@ void private_init()
         gpio_set_dir(i, GPIO_OUT);
     }
 
-    pwm_slice = pwm_gpio_to_slice_num(0);
+    pwm_slice = pwm_gpio_to_slice_num(led_0);
 }
 
 /* The next three methods are for convenience, you might want to use them. */
@@ -128,7 +129,7 @@ void leds_on ()
 }
 
 void enter_state_0(void){
-    led = 0;
+    led = led_0;
     leds_off();
 }
 
@@ -157,9 +158,9 @@ void exit_state_2(void){
 
 void enter_state_3(void){
     leds_off();
-    gpio_set_function(0, GPIO_FUNC_PWM);
+    gpio_set_function(led_0, GPIO_FUNC_PWM);
     pwm_set_enabled(pwm_slice, true);
-    pwm_set_wrap(0, 5000);
+    pwm_set_wrap(pwm_slice, 5000);
 
     incr = true;
 }
@@ -167,7 +168,7 @@ void enter_state_3(void){
 void exit_state_3(void){
     pwm_set_chan_level(pwm_slice, PWM_CHAN_A, 0);
     pwm_set_enabled(pwm_slice, false);
-    gpio_set_function(0, GPIO_FUNC_SIO); // Switch to standard GPIO
+    gpio_set_function(0, GPIO_FUNC_SIO);
 }
 
 void do_state_0(void)
